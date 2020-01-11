@@ -24,9 +24,9 @@ e.g: `./htbrecon.py Obscurity 10.10.10.168`
 
 ### What does it (or is it supposed to) do under the hood?
 A: A bunch of things
-1. Create a root directory <box name> in a location specified in the **GLOBAL CONFIG**
+1. Create a root directory \<box name\> in a location specified in the **GLOBAL CONFIG**
 2. Create subdirectories for the nmap, gobuster and uniscan results
-3. Add an entry in the /etc/hosts file `box ip addres	box name.htb	# created by htbrecon`
+3. Add an entry in the /etc/hosts file `<box ip addres>	<box name>.htb	# created by htbrecon`
 4. Run a NMAP scan `nmap -oX -T4 -A -p 1 65535`
 5. Run a gobuster scan on http://\<box ip address\> using directory-list-2.3-small.txt
 6. Run a gobuster scan on http://\<box ip address\> using directory-list-lowercase-2.3-small.txt
