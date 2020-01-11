@@ -2,6 +2,7 @@
 
 import os
 import sys
+import socket
 
 import argparse
 
@@ -10,34 +11,35 @@ from multiprocessing import Process, Queue
 
 from pathlib import Path
 
+########## GLOBAL CONFIG ##########
 
-def init_config():
-	global OUTPUT_DIR = "/root/Desktop/HackTheBox/HackTheBox/"
-	global OUTPUT_DIR_NMAP = "/nmap"
-	global OUTPUT_DIR_GOBUSTER = "/gobuster"
-	global OUTPUT_DIR_UNISCAN = "/uniscan"
+OUTPUT_DIR = "/root/Desktop/HackTheBox/HackTheBox/"
+OUTPUT_DIR_NMAP = "/nmap"
+OUTPUT_DIR_GOBUSTER = "/gobuster"
+OUTPUT_DIR_UNISCAN = "/uniscan"
 
-	global APPEND_HOSTS = True
+APPEND_HOSTS = True
 
-	global NMAP_BIN_LOC = "/usr/bin/nmap"
-	global GOBUSTER_BIN_LOC = "/usr/bin/gobuster"
-	global UNISCAN_BIN_LOC = "/usr/bin/uniscan"
+NMAP_BIN_LOC = "/usr/bin/nmap"
+GOBUSTER_BIN_LOC = "/usr/bin/gobuster"
+UNISCAN_BIN_LOC = "/usr/bin/uniscan"
 
-	global DIR_SMALL = "/usr/share/dirbuster/wordlists/directory-list-2.3-small.txt"
-	global DIR_SMALL_LOWER = "/usr/share/dirbuster/wordlists/directory-list-lowercase-2.3-small.txt"
-	global DIR_MEDIUM = "/usr/share/dirbuster/wordlists/directory-list-2.3-medium.txt"
-	global DIR_MEDIUM_LOWER = "/usr/share/dirbuster/wordlists/directory-list-lowercase-2.3-medium.txt"
+DIR_SMALL = "/usr/share/dirbuster/wordlists/directory-list-2.3-small.txt"
+DIR_SMALL_LOWER = "/usr/share/dirbuster/wordlists/directory-list-lowercase-2.3-small.txt"
+DIR_MEDIUM = "/usr/share/dirbuster/wordlists/directory-list-2.3-medium.txt"
+DIR_MEDIUM_LOWER = "/usr/share/dirbuster/wordlists/directory-list-lowercase-2.3-medium.txt"
 
-	global NMAP_ARGS_DEFAULT = "-sC -sV"
-	global NMAP_ARGS_QUICK = "-Pn -sV"
-	global NMAP_ARGS_COMPR = "-T4 -A -p 1-65535"
+NMAP_ARGS_DEFAULT = ["-sC", "-sV"]
+NMAP_ARGS_QUICK = ["-Pn", "-sV"]
+NMAP_ARGS_COMPR = ["-T4", "-A", "-p", "1-65535"]
 
-	global UNISCAN_ARGS_DEFAULT = "-qwe"
-	global UNISCAN_ARGS_QUICK = "-qw"
-	global UNISCAN_ARGS_COMPR = "-qwed"
+UNISCAN_ARGS_DEFAULT = "-qwe"
+UNISCAN_ARGS_QUICK = "-qw"
+UNISCAN_ARGS_COMPR = "-qwed"
 
-	global VERSION = "1.0"
+VERSION = "1.0"
 
+########## END OF CONFIG ##########
 
 def print_banner():
 	print("   __    __  .___________..______   .______       _______   ______   ______   .__   __. ")
@@ -81,26 +83,35 @@ def configure_hosts(box_name, box_address):
 	if APPEND_HOSTS:
 		try:
 			f = open("/etc/hosts", "a")
-			f.write("\n" + box_name.lower() + "\t" + box_address + ".htb \t# created by htbrecon")
+			f.write("\n" + box_address + "\t" + box_name.lower() + ".htb \t# created by htbrecon")
 			f.close()
 		except:
 			print("|error| insufficient permissions: could not write to /etc/hosts")
 
-def launch_nmap(box_name, box_address, args):
+def launch_nmap(box_name, box_address, quick, compr):
 	try:
 		out = OUTPUT_DIR + box_name + OUTPUT_DIR_NMAP + "/htbrecon"
-		nmap_process = subprocess.call([NMAP_BIN_LOC, args, "-oN", out, box_address])
+
+		if quick:
+			nmap_process = subprocess.call([NMAP_BIN_LOC, "-Pn", "-sV", "-oN", out, box_address])
+		elif compr:
+			nmap_process = subprocess.call([NMAP_BIN_LOC, "-T4", "-A", "-p", "1-65535", "-oN", out, box_address])
+		else:
+			nmap_process = subprocess.call([NMAP_BIN_LOC, "-sC", "-sV", "-oN", out, box_address])
 		print(nmap_process)
-	except:
+	except Exception as e:
 		print("|error| failed to initiate nmap")
+		print(e)
 
 def launch_gobuster(box_name, box_address, wordlist, force_https):
 	set_http = "http://"
+	prefix = "http_"
 	if force_https:
 		set_http = "https://"
+		prefix = "https_"
 
 	try:
-		out = OUTPUT_DIR + box_name + OUTPUT_DIR_GOBUSTER + "/htbrecon.gobuster"
+		out = OUTPUT_DIR + box_name + OUTPUT_DIR_GOBUSTER + "/" + prefix + "htbrecon.gobuster"
 		gobuster_process = subprocess.call([GOBUSTER_BIN_LOC, "dir", "-w", wordlist, "-x", ".php", "-o", out, "-u", set_http + box_address])
 #		try:
 #			f = open(out, "w")
@@ -116,10 +127,12 @@ def launch_gobuster(box_name, box_address, wordlist, force_https):
 
 def launch_uniscan(box_name, box_address, args, force_https):
 	set_http = "http://"
+	prefix = "http_"
 	if force_https:
 		set_http = "https://"
+		prefix = "https_"
 	try:
-		out = OUTPUT_DIR + box_name + OUTPUT_DIR_UNISCAN + "/htbrecon.uniscan"
+		out = OUTPUT_DIR + box_name + OUTPUT_DIR_UNISCAN + "/" + prefix + "htbrecon.uniscan"
 		uniscan_process = subprocess.call([UNISCAN_BIN_LOC, "-u", set_http + box_address + "/", args])
 #		try:
 #			f = open(out, "w")
@@ -134,6 +147,15 @@ def launch_uniscan(box_name, box_address, args, force_https):
 		print("|error| failed to initiate uniscan")
 
 
+def check_port(box_address, port):
+	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	sock.settimeout(1)
+	res = sock.connect_ex((box_address, port))
+	if res == 0:
+		return True
+	else:
+		return False
+
 def main(args):
 	print_banner()
 
@@ -144,29 +166,49 @@ def main(args):
 	configure_hosts(args.box_name, args.box_address)
 
 	print("|start| starting nmap")
-	if args.q:
-		launch_nmap(args.box_name, args.box_address, NMAP_ARGS_QUICK)
-	elif args.c:
-		launch_nmap(args.box_name, args.box_address, NMAP_ARGS_COMPR)
-	else:
-		launch_nmap(args.box_name, args.box_address, NMAP_ARGS_DEFAULT)
+	launch_nmap(args.box_name, args.box_address, args.quick, args.comprehensive)
 
 	print("|start| starting gobuster")
-	if args.q:
-		launch_gobuster(args.box_name, args.box_address, DIR_SMALL, args.x)
-	elif args.c:
-		launch_gobuster(args.box_name, args.box_address, DIR_MEDIUM, False)
-		launch_gobuster(args.box_name, args.box_address, DIR_MEDIUM, True)
+	if args.quick:
+		if check_port(args.box_address, 80) and not args.https or check_port(args.box_address, 443) and args.https:
+			launch_gobuster(args.box_name, args.box_address, DIR_SMALL, args.https)
+		else:
+			print("|info| failed to start gobuster: port closed")
+	elif args.comprehensive:
+		if check_port(args.box_address, 80):
+			launch_gobuster(args.box_name, args.box_address, DIR_MEDIUM, False)
+		else:
+			print("|info| failed to start gobuster: port 80 closed")
+		if check_port(args.box_address, 443):
+			launch_gobuster(args.box_name, args.box_address, DIR_MEDIUM, True)
+		else:
+			print("|info| failed to start gobuster: port 443 closed")
 	else:
-		launch_gobuster(args.box_name, args.box_address, DIR_MEDIUM, args.x)
+		if check_port(args.box_address, 80) and not args.https or check_port(args.box_address, 443) and args.https:
+			launch_gobuster(args.box_name, args.box_address, DIR_MEDIUM, args.https)
+		else:
+			print("|failed to start gobuster: port closed")
 
 	print("|start| starting uniscan")
-	if args.q:
-		launch_uniscan(args.box_name, args.box_address, UNISCAN_ARGS_QUICK, args.x)
-	elif args.c:
-		launch_uniscan(args.box_name, args.box_address, UNISCAN_ARGS_COMPR, args.x)
+	if args.quick:
+		if check_port(args.box_address, 80) and not args.https or check_port(args.https, 443) and args.https:
+			launch_uniscan(args.box_name, args.box_address, UNISCAN_ARGS_QUICK, args.https)
+		else:
+			print("|info| failed to start uniscan: port closed")
+	elif args.comprehensive:
+		if check_port(args.box_address, 80):
+			launch_uniscan(args.box_name, args.box_address, UNISCAN_ARGS_COMPR, False)
+		else:
+			print("|info| failed to start uniscan: port 80 closed")
+		if check_port(args.box_address, 443):
+			launch_uniscan(args.box_name, args.box_address, UNISCAN_ARGS_COMPR, True)
+		else:
+			print("|info| failed to start uniscan: port 443 closed")
 	else:
-		launch_uniscan(args.box_name, args.box_address, INISCAN_ARGS_DEFAULT, args.x)
+		if check_port(args.box_address, 80) and not args.https or check_port(args.box_address, 443) and args.https:
+			launch_uniscan(args.box_name, args.box_address, UNISCAN_ARGS_DEFAULT, args.https)
+		else:
+			print("|info| failed to start uniscan: port closed")
 
 	print("|info| all scans complete")
 	
