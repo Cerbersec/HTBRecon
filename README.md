@@ -58,6 +58,6 @@ A: A bunch of things
    2. Default scan: `uniscan -qwe`
    3. Comprehensive scan: `uniscan -qwed`
 8. Save all the output to log files
-   1. nmap: htbrecon.nmap
-   2. gobuster: htbrecon.gobuster
+   1. nmap: htbrecon
+   2. gobuster: http(s)_htbrecon.gobuster
    3. uniscan: \<box ip address\>.html
