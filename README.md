@@ -48,7 +48,7 @@ A: A bunch of things
 4. Run a NMAP scan
    1. Quick scan: `nmap -Pn -sV`
    2. Default scan: `nmap -sC -sV`
-   3. Comprehensive scan: `nmap -T4 -A -p 1-65535
+   3. Comprehensive scan: `nmap -T4 -A -p 1-65535`
 5. Run a gobuster scan
    1. Quick scan: http, small wordlist
    2. Default: http(s), small wordlist
