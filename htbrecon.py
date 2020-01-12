@@ -102,7 +102,7 @@ def launch_nmap(box_name, box_address, quick, compr):
 			nmap_process = subprocess.call([NMAP_BIN_LOC, "-T4", "-A", "-p", "1-65535", "-oN", out, box_address], stdout=subprocess.DEVNULL)
 		else:
 			nmap_process = subprocess.call([NMAP_BIN_LOC, "-sC", "-sV", "-oN", out, box_address], stdout=subprocess.DEVNULL)
-#		print(nmap_process)
+		print("|info| nmap scan complete")
 	except Exception as e:
 		print("|error| failed to initiate nmap")
 		print(e)
@@ -117,7 +117,7 @@ def launch_gobuster(box_name, box_address, wordlist, force_https):
 	try:
 		out = OUTPUT_DIR + box_name + OUTPUT_DIR_GOBUSTER + "/" + prefix + "htbrecon.gobuster"
 		gobuster_process = subprocess.call([GOBUSTER_BIN_LOC, "dir", "-w", wordlist, "-z", "-q", "-x", ".php", "-o", out, "-u", set_http + box_address], stdout=subprocess.DEVNULL)
-#		print(gobuster_process)
+		print("|info| gobuster scan complete")
 	except:
 		print("|error| failed to initiate gobuster")
 
@@ -136,6 +136,7 @@ def launch_uniscan(box_name, box_address, args, force_https):
 			shutil.move(REPORT_DIR_UNISCAN + box_address + ".html", out + box_address + ".html")
 		except:
 			print("|error| failed to move output")
+		print("|info| uniscan scan complete")
 	except:
 		print("|error| failed to initiate uniscan")
 
